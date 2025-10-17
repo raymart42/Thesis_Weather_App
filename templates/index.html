@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iloilo Weather - LSTM</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="logo">Iloilo Weather - LSTM</h1>
+            <p class="ai-text">Historical data and 2-day forecast for Iloilo, Philippines</p>
+        </header>
+
+        <!-- Date Selection Section -->
+        <section class="date-selection">
+            <h2>Select Date Range for Forecast</h2>
+            <div class="form-section">
+                <form method="POST" action="/forecast">
+                    <div class="form-group">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" id="start_date" name="start_date" value="{{ start_date if start_date else default_start_date }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" id="end_date" name="end_date" value="{{ end_date if end_date else default_end_date }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="days_to_predict">Days to Predict:</label>
+                        <select id="days_to_predict" name="days_to_predict">
+                            <option value="1" {% if days_to_predict == 1 %}selected{% endif %}>1 Day</option>
+                            <option value="2" {% if days_to_predict == 2 %}selected{% endif %}>2 Days</option>
+                            <option value="3" {% if days_to_predict == 3 %}selected{% endif %}>3 Days</option>
+                            <option value="5" {% if days_to_predict == 5 %}selected{% endif %}>5 Days</option>
+                            <option value="7" {% if days_to_predict == 7 %}selected{% endif %}>7 Days</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="forecast-btn">Generate Forecast</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Historical Data Section -->
+        <section class="historical-data">
+            <h2>Last 7 Days Weather Data</h2>
+            <div class="table-container">
+                <table class="weather-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Min Temp (°C)</th>
+                            <th>Max Temp (°C)</th>
+                            <th>Rain (mm)</th>
+                            <th>Wind Speed (km/h)</th>
+                            <th>Humidity (%)</th>
+                            <th>Dew Point (°C)</th>
+                            <th>Sunshine (s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in historical_data %}
+                        <tr>
+                            <td>{{ day.date }}</td>
+                            <td class="temp-low">{{ "%.3f"|format(day.temperature_2m_min) }}</td>
+                            <td class="temp-high">{{ "%.3f"|format(day.temperature_2m_max) }}</td>
+                            <td class="rain">{{ "%.3f"|format(day.rain_sum) }}</td>
+                            <td class="wind">{{ "%.3f"|format(day.wind_speed_10m_mean) }}</td>
+                            <td class="humidity">{{ "%.3f"|format(day.relative_humidity_2m_mean) }}</td>
+                            <td class="dew-point">{{ "%.3f"|format(day.dew_point_2m_mean) }}</td>
+                            <td class="sunshine">{{ "%.3f"|format(day.sunshine_duration) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Forecast Section -->
+        <section class="forecast">
+            <h2>{{ days_to_predict }}-Day Weather Forecast</h2>
+            <div class="forecast-grid">
+                {% for day in forecast_data %}
+                <div class="forecast-card">
+                    <h4>{{ day.date }}</h4>
+                    <div class="forecast-details">
+                        <p><span class="temp-low">Min: {{ "%.3f"|format(day.temperature_2m_min) }}°C</span></p>
+                        <p><span class="temp-high">Max: {{ "%.3f"|format(day.temperature_2m_max) }}°C</span></p>
+                        <p><span class="rain">Rain: {{ "%.3f"|format(day.rain_sum) }}mm</span></p>
+                        <p><span class="wind">Wind: {{ "%.3f"|format(day.wind_speed_10m_mean) }} km/h</span></p>
+                        <p><span class="humidity">Humidity: {{ "%.3f"|format(day.relative_humidity_2m_mean) }}%</span></p>
+                        <p><span class="dew-point">Dew Point: {{ "%.3f"|format(day.dew_point_2m_mean) }}°C</span></p>
+                        <p><span class="sunshine">Sunshine: {{ "%.3f"|format(day.sunshine_duration) }}s</span></p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Historical Weather Section - Day 1 -->
+        {% if forecast_data and forecast_data|length > 0 %}
+        <section class="historical-weather">
+            <h2>Iloilo Historical Weather on {{ forecast_data[0].date.day }}th {{ month_names[forecast_data[0].date.month - 1] }} over the years</h2>
+            <div class="table-container">
+                <table class="weather-table">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Min Temp (°C)</th>
+                            <th>Max Temp (°C)</th>
+                            <th>Rain (mm)</th>
+                            <th>Wind Speed (km/h)</th>
+                            <th>Humidity (%)</th>
+                            <th>Dew Point (°C)</th>
+                            <th>Sunshine (s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for year_data in historical_forecast_1 %}
+                        <tr>
+                            <td>{{ year_data.year }}</td>
+                            <td class="temp-low">{{ "%.3f"|format(year_data.temperature_2m_min) }}</td>
+                            <td class="temp-high">{{ "%.3f"|format(year_data.temperature_2m_max) }}</td>
+                            <td class="rain">{{ "%.3f"|format(year_data.rain_sum) }}</td>
+                            <td class="wind">{{ "%.3f"|format(year_data.wind_speed_10m_mean) }}</td>
+                            <td class="humidity">{{ "%.3f"|format(year_data.relative_humidity_2m_mean) }}</td>
+                            <td class="dew-point">{{ "%.3f"|format(year_data.dew_point_2m_mean) }}</td>
+                            <td class="sunshine">{{ "%.3f"|format(year_data.sunshine_duration) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <section class="historical-trend">
+                <h2>Historical Weather Trends on {{ forecast_data[0].date.day }}th {{ month_names[forecast_data[0].date.month - 1] }} over the years</h2>
+                <div class="graph-section">
+                    <div class="parameter-selector" id="parameterSelector1">
+                        <button class="param-btn active" data-param="tempMin">Min Temperature</button>
+                        <button class="param-btn" data-param="tempMax">Max Temperature</button>
+                        <button class="param-btn" data-param="rainSum">Rain</button>
+                        <button class="param-btn" data-param="windSpeed">Wind Speed</button>
+                        <button class="param-btn" data-param="humidity">Humidity</button>
+                        <button class="param-btn" data-param="dewPoint">Dew Point</button>
+                        <button class="param-btn" data-param="sunshine">Sunshine</button>
+                    </div>
+                    
+                    <div class="graph-container">
+                        <h3 class="graph-title" id="graphTitle1">Minimum Temperature Trend</h3>
+                        <div class="chart-container">
+                            <canvas id="weatherTrendChart1"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+        {% endif %}
+
+        <!-- Historical Weather Section - Day 2 -->
+        {% if forecast_data and forecast_data|length > 1 %}
+        <section class="historical-weather">
+            <h2>Iloilo Historical Weather on {{ forecast_data[1].date.day }}th {{ month_names[forecast_data[1].date.month - 1] }} over the years</h2>
+            <div class="table-container">
+                <table class="weather-table">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Min Temp (°C)</th>
+                            <th>Max Temp (°C)</th>
+                            <th>Rain (mm)</th>
+                            <th>Wind Speed (km/h)</th>
+                            <th>Humidity (%)</th>
+                            <th>Dew Point (°C)</th>
+                            <th>Sunshine (s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for year_data in historical_forecast_2 %}
+                        <tr>
+                            <td>{{ year_data.year }}</td>
+                            <td class="temp-low">{{ "%.3f"|format(year_data.temperature_2m_min) }}</td>
+                            <td class="temp-high">{{ "%.3f"|format(year_data.temperature_2m_max) }}</td>
+                            <td class="rain">{{ "%.3f"|format(year_data.rain_sum) }}</td>
+                            <td class="wind">{{ "%.3f"|format(year_data.wind_speed_10m_mean) }}</td>
+                            <td class="humidity">{{ "%.3f"|format(year_data.relative_humidity_2m_mean) }}</td>
+                            <td class="dew-point">{{ "%.3f"|format(year_data.dew_point_2m_mean) }}</td>
+                            <td class="sunshine">{{ "%.3f"|format(year_data.sunshine_duration) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <section class="historical-trend">
+                <h2>Historical Weather Trends on {{ forecast_data[1].date.day }}th {{ month_names[forecast_data[1].date.month - 1] }} over the years</h2>
+                <div class="graph-section">
+                    <div class="parameter-selector" id="parameterSelector2">
+                        <button class="param-btn active" data-param="tempMin">Min Temperature</button>
+                        <button class="param-btn" data-param="tempMax">Max Temperature</button>
+                        <button class="param-btn" data-param="rainSum">Rain</button>
+                        <button class="param-btn" data-param="windSpeed">Wind Speed</button>
+                        <button class="param-btn" data-param="humidity">Humidity</button>
+                        <button class="param-btn" data-param="dewPoint">Dew Point</button>
+                        <button class="param-btn" data-param="sunshine">Sunshine</button>
+                    </div>
+                    
+                    <div class="graph-container">
+                        <h3 class="graph-title" id="graphTitle2">Minimum Temperature Trend</h3>
+                        <div class="chart-container">
+                            <canvas id="weatherTrendChart2"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+        {% endif %}
+
+        <!-- About Us Section -->
+        <section class="about-us">
+            <h2>About Us</h2>
+            <div class="about-content">
+                <p>This weather forecasting application has been developed as part of our undergraduate thesis project in Computer Science. Our system utilizes Long Short-Term Memory (LSTM) neural networks to provide accurate weather predictions for Iloilo, Philippines.</p>
+                
+                <p>The project aims to demonstrate the application of deep learning techniques in meteorological forecasting, providing a user-friendly interface for accessing both historical weather data and future predictions.</p>
+                
+                <h3>Meet Our Team</h3>
+                    <div class="team-grid">
+                        <div class="team-member">
+                            <div class="member-image">
+                                <img src="{{ url_for('static', filename='images/member5.png') }}" alt="Jael, Nethan Quinn">
+                            </div>
+                            <h4>Jael, Nethan Quinn</h4>
+                        </div>
+                        
+                        <div class="team-member">
+                            <div class="member-image">
+                                <img src="{{ url_for('static', filename='images/member6.png') }}" alt="Maxino, Loi Marie">
+                            </div>
+                            <h4>Maxino, Loi Marie</h4>
+                        </div>
+                        
+                        <div class="team-member">
+                            <div class="member-image">
+                                <img src="{{ url_for('static', filename='images/member2.png') }}" alt="Oliverio, Aaron Hans">
+                            </div>
+                            <h4>Oliverio, Aaron Hans</h4>
+                        </div>
+                        
+                        <div class="team-member">
+                            <div class="member-image">
+                                <img src="{{ url_for('static', filename='images/member1.png') }}" alt="Patriarca, Raymart John">
+                            </div>
+                            <h4>Patriarca, Raymart John</h4>
+                        </div>
+                    </div>
+
+                     <div class="thesis-info">
+                    <h3>Thesis Information</h3>
+                    <p><strong>Title:</strong> Enhancing Localized Weather Forecasting in Iloilo Using Long-Short Term Memory (LSTM)</p>
+                    <p><strong>Institution:</strong> Iloilo Science and Technology University - Main Campus</p>
+                    <p><strong>Adviser:</strong> Lovidrick Barrios</p>
+                    <p><strong>Date:</strong> December 2025</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Initialize charts when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if forecast_data and forecast_data|length > 0 %}
+            initializeChart('weatherTrendChart1', 'graphTitle1', 'parameterSelector1', {{ historical_forecast_1 | tojson }});
+            {% endif %}
+            
+            {% if forecast_data and forecast_data|length > 1 %}
+            initializeChart('weatherTrendChart2', 'graphTitle2', 'parameterSelector2', {{ historical_forecast_2 | tojson }});
+            {% endif %}
+        });
+
+        function initializeChart(canvasId, titleId, selectorId, historicalData) {
+            // Extract data for the chart
+            const years = historicalData.map(item => item.year);
+            const tempMinData = historicalData.map(item => item.temperature_2m_min);
+            const tempMaxData = historicalData.map(item => item.temperature_2m_max);
+            const rainData = historicalData.map(item => item.rain_sum);
+            const windSpeedData = historicalData.map(item => item.wind_speed_10m_mean);
+            const humidityData = historicalData.map(item => item.relative_humidity_2m_mean);
+            const dewPointData = historicalData.map(item => item.dew_point_2m_mean);
+            const sunshineData = historicalData.map(item => item.sunshine_duration);
+            
+            // Create the chart
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            let chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Min Temperature (°C)',
+                        data: tempMinData,
+                        borderColor: 'rgb(78, 205, 196)',
+                        backgroundColor: 'rgba(78, 205, 196, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Historical Weather Trend',
+                            color: '#00b4ff',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#e0e0e0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Add event listeners to parameter buttons
+            const paramButtons = document.querySelectorAll(`#${selectorId} .param-btn`);
+            paramButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active button
+                    paramButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update chart title
+                    const titleElement = document.getElementById(titleId);
+                    titleElement.textContent = `${this.textContent} Trend`;
+                    
+                    // Update chart data based on selected parameter
+                    const param = this.getAttribute('data-param');
+                    let newData = [];
+                    let newLabel = '';
+                    let newColor = '';
+                    
+                    switch(param) {
+                        case 'tempMin':
+                            newData = tempMinData;
+                            newLabel = 'Min Temperature (°C)';
+                            newColor = 'rgb(78, 205, 196)';
+                            break;
+                        case 'tempMax':
+                            newData = tempMaxData;
+                            newLabel = 'Max Temperature (°C)';
+                            newColor = 'rgb(255, 107, 107)';
+                            break;
+                        case 'rainSum':
+                            newData = rainData;
+                            newLabel = 'Rain (mm)';
+                            newColor = 'rgb(9, 132, 227)';
+                            break;
+                        case 'windSpeed':
+                            newData = windSpeedData;
+                            newLabel = 'Wind Speed (km/h)';
+                            newColor = 'rgb(249, 202, 36)';
+                            break;
+                        case 'humidity':
+                            newData = humidityData;
+                            newLabel = 'Humidity (%)';
+                            newColor = 'rgb(69, 183, 209)';
+                            break;
+                        case 'dewPoint':
+                            newData = dewPointData;
+                            newLabel = 'Dew Point (°C)';
+                            newColor = 'rgb(108, 92, 231)';
+                            break;
+                        case 'sunshine':
+                            newData = sunshineData;
+                            newLabel = 'Sunshine (s)';
+                            newColor = 'rgb(240, 147, 43)';
+                            break;
+                    }
+                    
+                    chart.data.datasets = [{
+                        label: newLabel,
+                        data: newData,
+                        borderColor: newColor,
+                        backgroundColor: newColor.replace('rgb', 'rgba').replace(')', ', 0.2)'),
+                        tension: 0.1,
+                        fill: true
+                    }];
+                    
+                    chart.update();
+                });
+            });
+        }
+    </script>
+</body>
+</html>

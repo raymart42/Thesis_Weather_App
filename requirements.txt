@@ -7,3 +7,4 @@ numpy>=2.3.2
 keras>=3.11.3
 tensorflow>=2.20.0
 protobuf>=6.32.0
+joblib>=1.4.2

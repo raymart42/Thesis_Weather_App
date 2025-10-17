@@ -125,9 +125,19 @@ def prepare_prediction_data(data):
         scaled_data = scaler.transform(data)
     else:
         # Fallback normalization if scaler not available
-        from sklearn.preprocessing import MinMaxScaler
-        fallback_scaler = MinMaxScaler(feature_range=(0, 1))
-        scaled_data = fallback_scaler.fit_transform(data)
+        try:
+            from sklearn.preprocessing import MinMaxScaler
+            fallback_scaler = MinMaxScaler(feature_range=(0, 1))
+            scaled_data = fallback_scaler.fit_transform(data)
+        except ImportError:
+            # If sklearn is not available, use simple manual normalization
+            scaled_data = data.copy()
+            for col in data.columns:
+                if data[col].max() - data[col].min() > 0:
+                    scaled_data[col] = (data[col] - data[col].min()) / (data[col].max() - data[col].min())
+                else:
+                    scaled_data[col] = 0.5
+            scaled_data = scaled_data.values
     
     # Use the last 7 days for prediction
     sequence = scaled_data[-7:].reshape(1, 7, 7)  # 7 days, 7 features
@@ -326,5 +336,5 @@ def forecast():
         return f"Error: {str(e)}", 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)

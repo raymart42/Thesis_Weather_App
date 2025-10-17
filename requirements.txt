@@ -8,3 +8,4 @@ keras>=3.11.3
 tensorflow>=2.20.0
 protobuf>=6.32.0
 joblib>=1.4.2
+scikit-learn>=1.5.2

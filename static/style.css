@@ -1,0 +1,426 @@
+:root {
+    --primary-color: #00b4ff;
+    --bg-dark: #121212;
+    --bg-card: #1e1e1e;
+    --text-light: #e0e0e0;
+    --text-muted: #888;
+    --border-color: #333;
+    --success: #4CAF50;
+    --warning: #FF9800;
+    --danger: #f44336;
+    --text-md: 16px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    font-size: var(--text-md);
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--border-color);
+    padding: 30px 20px 20px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.logo {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(0, 150, 255, 0.7);
+    letter-spacing: 2px;
+}
+
+.ai-text {
+    color: var(--primary-color);
+    text-shadow: 0 0 15px var(--primary-color);
+    font-size: 1.2rem;
+    margin-top: 10px;
+}
+
+/* Section Styling */
+section {
+    background-color: var(--bg-card);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    animation: fadeIn 0.6s ease-out;
+}
+
+h2 {
+    color: var(--primary-color);
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0, 180, 255, 0.3);
+}
+
+h3 {
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+}
+
+h4 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.3rem;
+}
+
+/* Table Styling */
+.table-container {
+    overflow-x: auto;
+}
+
+.weather-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.weather-table th {
+    background: linear-gradient(135deg, var(--primary-color), #0088cc);
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.weather-table td {
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.weather-table tr:last-child td {
+    border-bottom: none;
+}
+
+.weather-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: background-color 0.3s ease;
+}
+
+/* Forecast Cards */
+.forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-top: 30px;
+}
+
+.forecast-card {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.forecast-details p {
+    margin: 12px 0;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.forecast-details p:last-child {
+    border-bottom: none;
+}
+
+/* Graph Section */
+.graph-section {
+    margin-top: 40px;
+}
+
+.graph-container {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.graph-title {
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+    margin: 20px 0;
+}
+
+.parameter-selector {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.param-btn {
+    background: #2a2a2a;
+    border: 2px solid var(--border-color);
+    border-radius: 25px;
+    padding: 10px 20px;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.param-btn:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.param-btn.active {
+    background: linear-gradient(135deg, var(--primary-color), #0088cc);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* About Us Section */
+.about-content {
+    line-height: 1.8;
+}
+
+.about-content p {
+    margin-bottom: 20px;
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.team-member {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s ease;
+}
+
+.team-member:hover {
+    transform: translateY(-5px);
+}
+
+.member-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 15px;
+    border: 3px solid var(--primary-color);
+}
+
+.member-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.team-member h4 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.team-member p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.thesis-info {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border-radius: 15px;
+    padding: 25px;
+    border: 1px solid var(--border-color);
+}
+
+.thesis-info h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.thesis-info p {
+    margin-bottom: 10px;
+}
+
+.thesis-info strong {
+    color: var(--primary-color);
+}
+
+/* Value styling */
+.temp-high { color: #ff6b6b; }
+.temp-low { color: #4ecdc4; }
+.humidity { color: #45b7d1; }
+.wind { color: #f9ca24; }
+.sunshine { color: #f0932b; }
+.dew-point { color: #6c5ce7; }
+.rain { color: #0984e3; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .logo {
+        font-size: 2rem;
+    }
+    
+    .weather-table {
+        font-size: 14px;
+    }
+    
+    .weather-table th,
+    .weather-table td {
+        padding: 10px;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+    
+    .parameter-selector {
+        gap: 10px;
+    }
+    
+    .param-btn {
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+    
+    .forecast-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .team-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    
+    .member-image {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Form Styling */
+.date-selection {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+}
+
+.form-section {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background-color: #2a2a2a;
+    color: var(--text-light);
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.forecast-btn {
+    background: linear-gradient(135deg, var(--primary-color), #0088cc);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+}
+
+.forecast-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 180, 255, 0.4);
+}
+
+/* Responsive form */
+@media (max-width: 768px) {
+    .form-group input,
+    .form-group select {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    
+    .forecast-btn {
+        padding: 12px 20px;
+        font-size: 16px;
+    }
+}

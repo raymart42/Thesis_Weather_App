@@ -16,12 +16,12 @@ app = Flask(__name__)
 
 # Load the pre-trained model and scaler
 try:
-    model = load_model('Model_2.h5', 
+    model = load_model('model.h5', 
                       custom_objects={'mse': losses.MeanSquaredError(),
                                      'mae': metrics.MeanAbsoluteError()})
 except:
     try:
-        model = load_model('Model_2.h5', compile=False)
+        model = load_model('model.h5', compile=False)
         model.compile(optimizer='adam', loss='mse')
     except:
         model = None
@@ -338,3 +338,4 @@ def forecast():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
+

@@ -16,14 +16,14 @@ app = Flask(__name__)
 
 # Load the pre-trained model and scaler
 try:
-    model = load_model('LSTM_Weather_Forcast_Model_new1.h5', 
+    model = load_model('LSTM_Weather_Forcast_Model_new2.h5', 
                       custom_objects={'mse': losses.MeanSquaredError(),
                                      'mae': metrics.MeanAbsoluteError()})
     print("Model loaded successfully with custom objects.")
 except Exception as e:
     print(f"Failed to load model with custom objects: {e}")
     try:
-        model = load_model('LSTM_Weather_Forcast_Model_new1.h5', compile=False)
+        model = load_model('LSTM_Weather_Forcast_Model_new2.h5', compile=False)
         model.compile(optimizer='adam', loss='mse')
         print("Model loaded successfully (fallback, compiled manually).")
     except Exception as e:
@@ -342,6 +342,7 @@ def forecast():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
+
 
 
 

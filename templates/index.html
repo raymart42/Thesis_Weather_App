@@ -11,14 +11,40 @@
     <div class="container">
         <header class="header">
             <h1 class="logo">Iloilo Weather - LSTM</h1>
-            <p class="ai-text">Historical data and 2-day forecast for Iloilo, Philippines</p>
+            <p class="ai-text">Historical data and {{ days_to_predict if days_to_predict else '2' }}-day forecast for {{ selected_location.name if selected_location else 'Iloilo City' }}, Philippines</p>
         </header>
 
-        <!-- Date Selection Section -->
-        <section class="date-selection">
-            <h2>Select Date Range for Forecast</h2>
+        <!-- Location Selection Section -->
+        <section class="location-selection">
+            <h2>Select Location and Date Range for Forecast</h2>
             <div class="form-section">
-                <form method="POST" action="/forecast">
+                <form method="POST" action="/forecast" id="forecast-form">
+                    <!-- Location Search -->
+                    <div class="form-group">
+                        <label for="location-search">Search Location:</label>
+                        <div class="search-container">
+                            <input type="text" id="location-search" name="location_search" placeholder="Type to search locations in Western Visayas..." autocomplete="off">
+                            <div id="search-results" class="search-results"></div>
+                        </div>
+                        <!-- Hidden fields to store selected location data -->
+                        <input type="hidden" id="location-name" name="location_name" value="{{ selected_location.name if selected_location else 'Iloilo City' }}">
+                        <input type="hidden" id="location-lat" name="location_lat" value="{{ selected_location.lat if selected_location else 10.6969 }}">
+                        <input type="hidden" id="location-lon" name="location_lon" value="{{ selected_location.lon if selected_location else 122.5644 }}">
+                        <input type="hidden" id="location-elevation" name="location_elevation" value="{{ selected_location.elevation if selected_location else 21.0 }}">
+                    </div>
+
+                    <!-- Selected Location Info -->
+                    <div id="selected-location-info" class="selected-location-info">
+                        <h4>Selected Location</h4>
+                        <div class="location-details">
+                            <p><strong>Name:</strong> <span id="display-location-name">{{ selected_location.name if selected_location else 'Iloilo City' }}</span></p>
+                            <p><strong>Latitude:</strong> <span id="display-location-lat">{{ "%.4f"|format(selected_location.lat) if selected_location else '10.6969' }}</span></p>
+                            <p><strong>Longitude:</strong> <span id="display-location-lon">{{ "%.4f"|format(selected_location.lon) if selected_location else '122.5644' }}</span></p>
+                            <p><strong>Elevation:</strong> <span id="display-location-elevation">{{ selected_location.elevation if selected_location else '21.0' }}</span> meters</p>
+                            <p><strong>Region:</strong> <span id="display-location-region">{{ selected_location.admin1 if selected_location else 'Western Visayas' }}</span></p>
+                        </div>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="start_date">Start Date:</label>
                         <input type="date" id="start_date" name="start_date" value="{{ start_date if start_date else default_start_date }}" required>
@@ -44,7 +70,7 @@
 
         <!-- Historical Data Section -->
         <section class="historical-data">
-            <h2>Last 7 Days Weather Data</h2>
+            <h2>Last 7 Days Weather Data - {{ selected_location.name if selected_location else 'Iloilo City' }}</h2>
             <div class="table-container">
                 <table class="weather-table">
                     <thead>
@@ -75,11 +101,34 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- 7-Day Historical Trend Section -->
+            <section class="historical-trend">
+                <h2>7-Day Weather Trends - {{ selected_location.name if selected_location else 'Iloilo City' }}</h2>
+                <div class="graph-section">
+                    <div class="parameter-selector" id="parameterSelector7Day">
+                        <button class="param-btn active" data-param="tempMin">Min Temperature</button>
+                        <button class="param-btn" data-param="tempMax">Max Temperature</button>
+                        <button class="param-btn" data-param="rainSum">Rain</button>
+                        <button class="param-btn" data-param="windSpeed">Wind Speed</button>
+                        <button class="param-btn" data-param="humidity">Humidity</button>
+                        <button class="param-btn" data-param="dewPoint">Dew Point</button>
+                        <button class="param-btn" data-param="sunshine">Sunshine</button>
+                    </div>
+                    
+                    <div class="graph-container">
+                        <h3 class="graph-title" id="graphTitle7Day">Minimum Temperature Trend (Last 7 Days)</h3>
+                        <div class="chart-container">
+                            <canvas id="weatherTrendChart7Day"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </section>
 
         <!-- Forecast Section -->
         <section class="forecast">
-            <h2>{{ days_to_predict }}-Day Weather Forecast</h2>
+            <h2>{{ days_to_predict }}-Day Weather Forecast - {{ selected_location.name if selected_location else 'Iloilo City' }}</h2>
             <div class="forecast-grid">
                 {% for day in forecast_data %}
                 <div class="forecast-card">
@@ -101,7 +150,7 @@
         <!-- Historical Weather Section - Day 1 -->
         {% if forecast_data and forecast_data|length > 0 %}
         <section class="historical-weather">
-            <h2>Iloilo Historical Weather on {{ forecast_data[0].date.day }}th {{ month_names[forecast_data[0].date.month - 1] }} over the years</h2>
+            <h2>{{ selected_location.name if selected_location else 'Iloilo City' }} Historical Weather on {{ forecast_data[0].date.day }}th {{ month_names[forecast_data[0].date.month - 1] }} over the years</h2>
             <div class="table-container">
                 <table class="weather-table">
                     <thead>
@@ -160,7 +209,7 @@
         <!-- Historical Weather Section - Day 2 -->
         {% if forecast_data and forecast_data|length > 1 %}
         <section class="historical-weather">
-            <h2>Iloilo Historical Weather on {{ forecast_data[1].date.day }}th {{ month_names[forecast_data[1].date.month - 1] }} over the years</h2>
+            <h2>{{ selected_location.name if selected_location else 'Iloilo City' }} Historical Weather on {{ forecast_data[1].date.day }}th {{ month_names[forecast_data[1].date.month - 1] }} over the years</h2>
             <div class="table-container">
                 <table class="weather-table">
                     <thead>
@@ -276,6 +325,109 @@
             {% if forecast_data and forecast_data|length > 1 %}
             initializeChart('weatherTrendChart2', 'graphTitle2', 'parameterSelector2', {{ historical_forecast_2 | tojson }});
             {% endif %}
+            
+            {% if historical_data %}
+            initialize7DayChart('weatherTrendChart7Day', 'graphTitle7Day', 'parameterSelector7Day', {{ historical_data | tojson }});
+            {% endif %}
+        });
+
+        // Search functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('location-search');
+            const searchResults = document.getElementById('search-results');
+            const locationNameInput = document.getElementById('location-name');
+            const locationLatInput = document.getElementById('location-lat');
+            const locationLonInput = document.getElementById('location-lon');
+            const locationElevationInput = document.getElementById('location-elevation');
+            
+            const displayLocationName = document.getElementById('display-location-name');
+            const displayLocationLat = document.getElementById('display-location-lat');
+            const displayLocationLon = document.getElementById('display-location-lon');
+            const displayLocationElevation = document.getElementById('display-location-elevation');
+            const displayLocationRegion = document.getElementById('display-location-region');
+
+            let searchTimeout;
+
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => {
+                    fetch(`/search_locations?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(locations => {
+                            searchResults.innerHTML = '';
+                            
+                            if (locations.length === 0) {
+                                searchResults.innerHTML = '<div class="search-result-item no-results">No locations found in Western Visayas</div>';
+                                searchResults.style.display = 'block';
+                                return;
+                            }
+
+                            locations.forEach(location => {
+                                const resultItem = document.createElement('div');
+                                resultItem.className = 'search-result-item';
+                                resultItem.innerHTML = `
+                                    <div class="result-name">${location.name}</div>
+                                    <div class="result-details">
+                                        Lat: ${location.lat.toFixed(4)}°N, 
+                                        Lon: ${location.lon.toFixed(4)}°E, 
+                                        Elev: ${location.elevation || 'N/A'}m
+                                    </div>
+                                    <div class="result-admin">${location.admin2 || ''} ${location.admin3 ? '• ' + location.admin3 : ''}</div>
+                                `;
+                                
+                                resultItem.addEventListener('click', function() {
+                                    selectLocation(location);
+                                });
+                                
+                                searchResults.appendChild(resultItem);
+                            });
+                            
+                            searchResults.style.display = 'block';
+                        })
+                        .catch(error => {
+                            console.error('Error searching locations:', error);
+                            searchResults.innerHTML = '<div class="search-result-item no-results">Error searching locations</div>';
+                            searchResults.style.display = 'block';
+                        });
+                }, 300);
+            });
+
+            function selectLocation(location) {
+                // Update hidden form inputs
+                locationNameInput.value = location.name;
+                locationLatInput.value = location.lat;
+                locationLonInput.value = location.lon;
+                locationElevationInput.value = location.elevation || 'N/A';
+                
+                // Update displayed location info
+                displayLocationName.textContent = location.name;
+                displayLocationLat.textContent = location.lat.toFixed(4);
+                displayLocationLon.textContent = location.lon.toFixed(4);
+                displayLocationElevation.textContent = location.elevation || 'N/A';
+                displayLocationRegion.textContent = location.admin1 || 'Western Visayas';
+                
+                // Clear search and hide results
+                searchInput.value = '';
+                searchResults.style.display = 'none';
+                
+                // Update page header
+                document.querySelector('.ai-text').textContent = 
+                    `Historical data and ${document.getElementById('days_to_predict').value}-day forecast for ${location.name}, Philippines`;
+            }
+
+            // Close search results when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.search-container')) {
+                    searchResults.style.display = 'none';
+                }
+            });
         });
 
         function initializeChart(canvasId, titleId, selectorId, historicalData) {
@@ -413,7 +565,142 @@
                 });
             });
         }
+
+        // Function for 7-day historical chart
+        function initialize7DayChart(canvasId, titleId, selectorId, historicalData) {
+            // Extract dates and data
+            const dates = historicalData.map(item => {
+                const date = new Date(item.date);
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+            });
+            
+            const tempMinData = historicalData.map(item => item.temperature_2m_min);
+            const tempMaxData = historicalData.map(item => item.temperature_2m_max);
+            const rainData = historicalData.map(item => item.rain_sum);
+            const windSpeedData = historicalData.map(item => item.wind_speed_10m_mean);
+            const humidityData = historicalData.map(item => item.relative_humidity_2m_mean);
+            const dewPointData = historicalData.map(item => item.dew_point_2m_mean);
+            const sunshineData = historicalData.map(item => item.sunshine_duration);
+            
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            let chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Min Temperature (°C)',
+                        data: tempMinData,
+                        borderColor: 'rgb(78, 205, 196)',
+                        backgroundColor: 'rgba(78, 205, 196, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '7-Day Weather Trend',
+                            color: '#00b4ff',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#e0e0e0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const paramButtons = document.querySelectorAll(`#${selectorId} .param-btn`);
+            paramButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    paramButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const titleElement = document.getElementById(titleId);
+                    titleElement.textContent = `${this.textContent} Trend (Last 7 Days)`;
+                    
+                    const param = this.getAttribute('data-param');
+                    let newData = [];
+                    let newLabel = '';
+                    let newColor = '';
+                    
+                    switch(param) {
+                        case 'tempMin':
+                            newData = tempMinData;
+                            newLabel = 'Min Temperature (°C)';
+                            newColor = 'rgb(78, 205, 196)';
+                            break;
+                        case 'tempMax':
+                            newData = tempMaxData;
+                            newLabel = 'Max Temperature (°C)';
+                            newColor = 'rgb(255, 107, 107)';
+                            break;
+                        case 'rainSum':
+                            newData = rainData;
+                            newLabel = 'Rain (mm)';
+                            newColor = 'rgb(9, 132, 227)';
+                            break;
+                        case 'windSpeed':
+                            newData = windSpeedData;
+                            newLabel = 'Wind Speed (km/h)';
+                            newColor = 'rgb(249, 202, 36)';
+                            break;
+                        case 'humidity':
+                            newData = humidityData;
+                            newLabel = 'Humidity (%)';
+                            newColor = 'rgb(69, 183, 209)';
+                            break;
+                        case 'dewPoint':
+                            newData = dewPointData;
+                            newLabel = 'Dew Point (°C)';
+                            newColor = 'rgb(108, 92, 231)';
+                            break;
+                        case 'sunshine':
+                            newData = sunshineData;
+                            newLabel = 'Sunshine (s)';
+                            newColor = 'rgb(240, 147, 43)';
+                            break;
+                    }
+                    
+                    chart.data.datasets = [{
+                        label: newLabel,
+                        data: newData,
+                        borderColor: newColor,
+                        backgroundColor: newColor.replace('rgb', 'rgba').replace(')', ', 0.2)'),
+                        tension: 0.1,
+                        fill: true
+                    }];
+                    
+                    chart.update();
+                });
+            });
+        }
     </script>
 </body>
-
 </html>

@@ -26,25 +26,32 @@ DEFAULT_LOCATION = {
     'admin3': 'Iloilo City'
 }
 
-# Load the pre-trained model and scaler
+# Load the pre-trained model and scaler - CORRECTED VERSION
 try:
     model = load_model('LSTM_Weather_Forcast_Model_12-03-2025.h5', 
-                      custom_objects={'mse': losses.MeanSquaredError(),
-                                     'mae': metrics.MeanAbsoluteError()})
-    print("Model loaded successfully with custom objects.")
+                      custom_objects={
+                          'mse': losses.MeanSquaredError(),
+                          'mae': metrics.MeanAbsoluteError(),
+                          'mean_absolute_error': metrics.MeanAbsoluteError(),
+                          'root_mean_squared_error': metrics.RootMeanSquaredError(),
+                          'r2_score': metrics.R2Score()
+                      })
+    print("✅ Model loaded successfully with custom objects.")
 except Exception as e:
-    print(f"Failed to load model with custom objects: {e}")
+    print(f"❌ Failed to load model with custom objects: {e}")
     try:
         model = load_model('LSTM_Weather_Forcast_Model_12-03-2025.h5', compile=False)
         model.compile(optimizer='adam', loss='mse')
-        print("Model loaded successfully (fallback, compiled manually).")
+        print("✅ Model loaded successfully (fallback, compiled manually).")
     except Exception as e:
-        print(f"Failed to load model completely: {e}")
+        print(f"❌ Failed to load model completely: {e}")
         model = None
 
 try:
     scaler = joblib.load('iloilo_weather_scaler_12-03-2025.pkl')
-except:
+    print("✅ Scaler loaded successfully.")
+except Exception as e:
+    print(f"❌ Failed to load scaler: {e}")
     scaler = None
 
 # Helper function to convert numpy types to native Python types
@@ -98,7 +105,7 @@ def search_locations(query):
         print(f"Error searching locations: {e}")
         return []
 
-# Function to fetch weather data for specific date range and location
+# CORRECTED: Function to fetch weather data with proper preprocessing
 def fetch_weather_data(start_date, end_date, location_data=DEFAULT_LOCATION):
     lat = location_data['lat']
     lon = location_data['lon']
@@ -108,7 +115,9 @@ def fetch_weather_data(start_date, end_date, location_data=DEFAULT_LOCATION):
     retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
     openmeteo = openmeteo_requests.Client(session=retry_session)
     
-    url = "https://archive-api.open-meteo.com/v1/archive"
+    #"https://archive-api.open-meteo.com/v1/archive"
+    #https://historical-forecast-api.open-meteo.com/v1/forecast"
+    url = "https://archive-api.open-meteo.com/v1/archive" 
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -157,8 +166,14 @@ def fetch_weather_data(start_date, end_date, location_data=DEFAULT_LOCATION):
 
         daily_weather_dataframe = pd.DataFrame(data=daily_data)
         daily_weather_dataframe['date'] = pd.to_datetime(daily_weather_dataframe['date'])
+        
+        # CRITICAL: Apply same preprocessing as training
+        # Convert sunshine duration to hours (same as training)
         daily_weather_dataframe['sunshine_duration'] = daily_weather_dataframe['sunshine_duration'] / 3600
         daily_weather_dataframe = daily_weather_dataframe.set_index('date')
+        
+        # CRITICAL: Interpolate missing values BEFORE any processing (same as training)
+        daily_weather_dataframe['sunshine_duration'] = daily_weather_dataframe['sunshine_duration'].interpolate(method='time').bfill().ffill()
         
         return daily_weather_dataframe
     
@@ -182,15 +197,18 @@ def get_sample_data(start_date, end_date):
     
     df = pd.DataFrame(sample_data)
     df['date'] = pd.to_datetime(df['date'])
+    # Apply same preprocessing as training
+    df['sunshine_duration'] = df['sunshine_duration'] / 3600
     df = df.set_index('date')
+    df['sunshine_duration'] = df['sunshine_duration'].interpolate(method='time').bfill().ffill()
     return df
 
-# Function to prepare data for prediction
+# CORRECTED: Function to prepare data for prediction
 def prepare_prediction_data(data):
-    # Interpolate missing data
-    data['sunshine_duration'] = data['sunshine_duration'].interpolate(method='time').bfill().ffill()
+    # Data should already be preprocessed from fetch_weather_data
+    # Just normalize using the same scaler
     
-    # Normalize data
+    # Normalize data using the same scaler from training
     if scaler is not None:
         scaled_data = scaler.transform(data)
     else:
@@ -209,12 +227,12 @@ def prepare_prediction_data(data):
                     scaled_data[col] = 0.5
             scaled_data = scaled_data.values
     
-    # Use the last 7 days for prediction
+    # Use the last 7 days for prediction (same as training n_steps=7)
     sequence = scaled_data[-7:].reshape(1, 7, 7)  # 7 days, 7 features
     
     return sequence
 
-# Function to generate predictions
+# CORRECTED: Function to generate predictions (matches training output)
 def generate_predictions(sequence, days_to_predict=2):
     predictions = []
     
@@ -222,15 +240,21 @@ def generate_predictions(sequence, days_to_predict=2):
         # Return sample predictions if model not available
         return get_sample_predictions(days_to_predict)
     
-    # Predict specified number of days
-    for _ in range(days_to_predict):
-        pred = model.predict(sequence, verbose=0)
-        predictions.append(pred[0])
-        
-        # Update sequence for next prediction
-        sequence = np.append(sequence[:, 1:, :], pred.reshape(1, 1, 7), axis=1)
+    # Your model predicts ALL 7 features for the next day
+    # For multi-day prediction, we need recursive forecasting
+    current_sequence = sequence.copy()
     
-    # Inverse transform predictions
+    for _ in range(days_to_predict):
+        # Predict next day (all 7 features)
+        pred = model.predict(current_sequence, verbose=0)
+        predictions.append(pred[0])  # Get the prediction for all 7 features
+        
+        # Update sequence for next prediction: remove first day, add prediction
+        # This maintains the 7-day window for next prediction
+        current_sequence = np.append(current_sequence[:, 1:, :], 
+                                   pred.reshape(1, 1, 7), axis=1)
+    
+    # Convert predictions back to original scale
     predictions = np.array(predictions)
     if scaler is not None:
         predictions = scaler.inverse_transform(predictions)
@@ -252,7 +276,7 @@ def get_sample_predictions(days_to_predict):
     return np.array(predictions)
 
 # Historical weather function
-def get_historical_weather(day, month, years_range=range(2014, 2025), location_data=DEFAULT_LOCATION):
+def get_historical_weather(day, month, years_range=range(2014, 2026), location_data=DEFAULT_LOCATION):
     historical_data = []
     
     lat = location_data['lat']
@@ -303,6 +327,28 @@ def get_historical_weather(day, month, years_range=range(2014, 2025), location_d
             continue
     return pd.DataFrame(historical_data)
 
+# Model verification function
+def verify_model_compatibility():
+    if model is not None:
+        print(f"✅ Model input shape: {model.input_shape}")
+        print(f"✅ Model output shape: {model.output_shape}")
+        print(f"✅ Expected input: (None, 7, 7)")
+        print(f"✅ Expected output: (None, 7)")
+        
+        # Test with dummy data
+        test_sequence = np.random.random((1, 7, 7))
+        try:
+            test_pred = model.predict(test_sequence, verbose=0)
+            print(f"✅ Test prediction shape: {test_pred.shape}")
+            return True
+        except Exception as e:
+            print(f"❌ Model test failed: {e}")
+            return False
+    return False
+
+# Verify model on startup
+verify_model_compatibility()
+
 @app.route('/search_locations')
 def search_locations_route():
     query = request.args.get('query', '')
@@ -315,14 +361,97 @@ def search_locations_route():
 
 @app.route('/')
 def index():
-    # Default date range (past 7 days)
-    end_date = dt.date.today()
-    start_date = end_date - dt.timedelta(days=7)
-    
-    return render_template('index.html', 
-                         default_start_date=start_date.strftime('%Y-%m-%d'),
-                         default_end_date=end_date.strftime('%Y-%m-%d'),
-                         selected_location=DEFAULT_LOCATION)
+    try:
+        # Auto-load: fetch past 7 days and predict next 2 days immediately
+        end_date = dt.date.today()
+        start_date = end_date - dt.timedelta(days=7)
+        days_to_predict = 2
+        location_data = DEFAULT_LOCATION
+
+        # Fetch weather data for the past 7 days
+        weather_data = fetch_weather_data(
+            start_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d'),
+            location_data
+        )
+
+        # Format past weather for display
+        past_days = []
+        for i, (date, row) in enumerate(weather_data.iterrows()):
+            past_days.append({
+                'date': date.date(),
+                'temperature_2m_min': float(round(row['temperature_2m_min'], 3)),
+                'temperature_2m_max': float(round(row['temperature_2m_max'], 3)),
+                'rain_sum': float(round(row['rain_sum'], 3)),
+                'wind_speed_10m_mean': float(round(row['wind_speed_10m_mean'], 3)),
+                'relative_humidity_2m_mean': float(round(row['relative_humidity_2m_mean'], 3)),
+                'dew_point_2m_mean': float(round(row['dew_point_2m_mean'], 3)),
+                'sunshine_duration': float(round(row['sunshine_duration'] * 3600, 3))
+            })
+
+        # Generate predictions
+        forecast_data = []
+        if len(weather_data) >= 7:
+            sequence = prepare_prediction_data(weather_data)
+            predictions = generate_predictions(sequence, days_to_predict)
+            last_date = weather_data.index[-1]
+            future_dates = [last_date + dt.timedelta(days=i+1) for i in range(days_to_predict)]
+            for i, pred in enumerate(predictions):
+                forecast_data.append({
+                    'date': future_dates[i].date(),
+                    'temperature_2m_min': float(round(pred[0], 3)),
+                    'temperature_2m_max': float(round(pred[1], 3)),
+                    'rain_sum': float(round(pred[2], 3)),
+                    'wind_speed_10m_mean': float(round(pred[3], 3)),
+                    'relative_humidity_2m_mean': float(round(pred[4], 3)),
+                    'dew_point_2m_mean': float(round(pred[5], 3)),
+                    'sunshine_duration': float(round(pred[6] * 3600, 3))
+                })
+
+        # Historical comparison for forecast days
+        historical_data_list = []
+        for forecast_day in forecast_data:
+            d, m = forecast_day['date'].day, forecast_day['date'].month
+            historical_df = get_historical_weather(d, m, location_data=location_data)
+            if not historical_df.empty:
+                historical_records = []
+                for _, row in historical_df.iterrows():
+                    historical_records.append({
+                        'year': int(row['year']),
+                        'temperature_2m_min': float(row['temperature_2m_min']),
+                        'temperature_2m_max': float(row['temperature_2m_max']),
+                        'rain_sum': float(row['rain_sum']),
+                        'wind_speed_10m_mean': float(row['wind_speed_10m_mean']),
+                        'relative_humidity_2m_mean': float(row['relative_humidity_2m_mean']),
+                        'dew_point_2m_mean': float(row['dew_point_2m_mean']),
+                        'sunshine_duration': float(row['sunshine_duration'])
+                    })
+                historical_data_list.append(historical_records)
+            else:
+                historical_data_list.append([])
+
+        historical_forecast_1 = historical_data_list[0] if len(historical_data_list) > 0 else []
+        historical_forecast_2 = historical_data_list[1] if len(historical_data_list) > 1 else []
+
+        month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December']
+
+        return render_template('index.html',
+                             historical_data=past_days,
+                             forecast_data=forecast_data,
+                             historical_forecast_1=historical_forecast_1,
+                             historical_forecast_2=historical_forecast_2,
+                             month_names=month_names,
+                             start_date=start_date.strftime('%Y-%m-%d'),
+                             end_date=end_date.strftime('%Y-%m-%d'),
+                             days_to_predict=days_to_predict,
+                             selected_location=location_data,
+                             today_date=end_date.strftime('%Y-%m-%d'))
+    except Exception as e:
+        print(f"Error in auto-load: {e}")
+        return render_template('index.html',
+                             selected_location=DEFAULT_LOCATION,
+                             today_date=dt.date.today().strftime('%Y-%m-%d'))
 
 @app.route('/forecast', methods=['GET', 'POST'])
 def forecast():
@@ -385,7 +514,7 @@ def forecast():
                 'wind_speed_10m_mean': float(round(row['wind_speed_10m_mean'], 3)),
                 'relative_humidity_2m_mean': float(round(row['relative_humidity_2m_mean'], 3)),
                 'dew_point_2m_mean': float(round(row['dew_point_2m_mean'], 3)),
-                'sunshine_duration': float(round(row['sunshine_duration'] * 3600, 3))
+                'sunshine_duration': float(round(row['sunshine_duration'] * 3600, 3))  # Convert back to seconds for display
             })
         
         # Format predictions for display (convert to native types)
@@ -401,7 +530,7 @@ def forecast():
                 'wind_speed_10m_mean': float(round(pred[3], 3)),
                 'relative_humidity_2m_mean': float(round(pred[4], 3)),
                 'dew_point_2m_mean': float(round(pred[5], 3)),
-                'sunshine_duration': float(round(pred[6] * 3600, 3))
+                'sunshine_duration': float(round(pred[6] * 3600, 3))  # Convert back to seconds for display
             })
         
         # Get historical context for predicted days
@@ -442,7 +571,8 @@ def forecast():
                             start_date=start_date,
                             end_date=end_date,
                             days_to_predict=days_to_predict,
-                            selected_location=location_data)
+                            selected_location=location_data,
+                            today_date=dt.date.today().strftime('%Y-%m-%d'))
                             
     except Exception as e:
         return f"Error: {str(e)}", 500
@@ -450,4 +580,3 @@ def forecast():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(debug=False, host='0.0.0.0', port=port)
-
